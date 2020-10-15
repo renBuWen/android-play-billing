@@ -295,9 +295,9 @@ import java.util.HashSet
  *   [Activity] lifecycle event. Hence, they are the starting points in the process.
  *
  * 2. [onPurchasesUpdated] is the callback that the Play [BillingClient] calls in response to its
- *    [launcBillingFlow][BillingClient.launchBillingFlow] being called. If the response code is
- *    [BillingResponse.OK], then developers may go straight to [processPurchases]. If, however, the
- *    response code is [BillingResponse.ITEM_ALREADY_OWNED], then developers should call
+ *    [launchBillingFlow][BillingClient.launchBillingFlow] being called. If the response code is
+ *    [BillingClient.BillingResponseCode.OK], then developers may go straight to [processPurchases]. If, however, the
+ *    response code is [BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED], then developers should call
  *    [queryPurchasesAsync] to verify if other such already-owned items exist that should be
  *    processed.
  *
@@ -487,7 +487,7 @@ class BillingRepository private constructor(private val application: Application
         playStoreBillingClient.endConnection()
         // normally you don't worry about closing a DB connection unless you have more than
         // one DB open. so no need to call 'localCacheBillingClient.close()'
-        Log.d(LOG_TAG, "startDataSourceConnections")
+        Log.d(LOG_TAG, "endDataSourceConnections")
     }
 
     private fun instantiateAndConnectToPlayBillingService() {
@@ -549,7 +549,7 @@ class BillingRepository private constructor(private val application: Application
      *
      * Google Play Billing refers to receipts as [Purchases][Purchase]. So when a user buys
      * something, Play Billing returns a [Purchase] object that the app then uses to release the
-     * [Entitlement] to the user. Receipts are pivotal within the [BillingRepositor]; but they are
+     * [Entitlement] to the user. Receipts are pivotal within the [BillingRepository]; but they are
      * not part of the repo’s public API, because clients don’t need to know about them. When
      * the release of entitlements occurs depends on the type of purchase. For consumable products,
      * the release may be deferred until after consumption by Google Play; for non-consumable
@@ -614,7 +614,7 @@ class BillingRepository private constructor(private val application: Application
                   disbursement.
                  */
                 val testing = localCacheBillingClient.purchaseDao().getPurchases()
-                Log.d(LOG_TAG, "processPurchases purchases in the lcl db ${testing?.size}")
+                Log.d(LOG_TAG, "processPurchases purchases in the lcl db ${testing.size}")
                 localCacheBillingClient.purchaseDao().insert(*validPurchases.toTypedArray())
                 handleConsumablePurchasesAsync(consumables)
                 acknowledgeNonConsumablePurchasesAsync(nonConsumables)
@@ -698,7 +698,7 @@ class BillingRepository private constructor(private val application: Application
                         localCacheBillingClient.skuDetailsDao()
                                 .insertOrUpdate(purchase.sku, goldStatus.mayPurchase())
                         /* there is more than one way to buy gold status. After disabling the
-                        one the user just purchased, re-enble the others */
+                        one the user just purchased, re-enable the others */
                         GameSku.GOLD_STATUS_SKUS.forEach { otherSku ->
                             if (otherSku != purchase.sku) {
                                 localCacheBillingClient.skuDetailsDao()
@@ -792,7 +792,7 @@ class BillingRepository private constructor(private val application: Application
             goldStatusLiveData.value?.apply {
                 result = when (sku) {
                     GameSku.GOLD_MONTHLY -> GameSku.GOLD_YEARLY
-                    else -> GameSku.GOLD_YEARLY
+                    else -> GameSku.GOLD_MONTHLY
                 }
             }
         }
